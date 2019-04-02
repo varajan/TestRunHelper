@@ -1,0 +1,4 @@
+.vs/*
+packages/*
+TestRunHelper/bin/*
+TestRunHelper/obj/*
