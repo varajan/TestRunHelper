@@ -4,6 +4,7 @@ using System.Linq;
 using Microsoft.TeamFoundation;
 using Microsoft.TeamFoundation.Client;
 using Microsoft.TeamFoundation.TestManagement.Client;
+using TestRunHelper.Helpers;
 
 namespace TestRunHelper.Tfs
 {
@@ -26,18 +27,21 @@ namespace TestRunHelper.Tfs
                         _collection = new TfsTeamProjectCollection(new Uri(Url), new System.Net.NetworkCredential(Usr, Pwd));
                         _collection.Authenticate();
                     }
-                    catch (Exception)
+                    catch (Exception exception)
                     {
-                        // nothing
+                        Logger.Error("Failed to connect to TFS.");
+                        Logger.Error(exception);
                     }
                 }
 
                 if (_collection == null || !_collection.HasAuthenticated)
                 {
                     _collection = null;
+                    Logger.Error("Connection to TFS is not established.");
                     throw new TeamFoundationServerUnauthorizedException("Connection to TFS is not established.");
                 }
 
+                Logger.Info("Connection to TFS is ok");
                 return _collection;
             }
         }
