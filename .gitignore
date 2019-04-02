@@ -2,3 +2,4 @@
 packages/*
 TestRunHelper/bin/*
 TestRunHelper/obj/*
+TestRunHelper/App.config
