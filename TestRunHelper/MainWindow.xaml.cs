@@ -11,9 +11,12 @@ using TestRunHelper.Tfs;
 
 namespace TestRunHelper
 {
-    public partial class MainWindow : Window
+    public partial class MainWindow
     {
+        private int TestRunId => $"{TestRuns.SelectedItem}".Split(' ').First().ToInt();
+
         private readonly TfsTestRun _tfsTestRuns;
+        
         public MainWindow()
         {
             InitializeComponent();
@@ -24,11 +27,20 @@ namespace TestRunHelper
             Passed.IsEnabled = false;
             Failed.IsEnabled = false;
             Inconclusive.IsEnabled = false;
-
             SaveBtn.IsEnabled = false;
-            SaveBtn.Click += SavePlaylist;
 
+            SaveBtn.Click += SavePlaylist;
             Reload.Click += ReloadTestRuns;
+            TestRuns.SelectionChanged += UpdateTestsCount;
+        }
+
+        private void UpdateTestsCount(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
+        {
+            var statistics = _tfsTestRuns.GetTestRun(TestRunId).Statistics;
+
+            Passed.Content = $"Passed - {statistics.PassedTests}";
+            Failed.Content = $"Failed - {statistics.FailedTests}";
+            Inconclusive.Content = $"Inconclusive - {statistics.TotalTests - statistics.PassedTests - statistics.FailedTests}";
         }
 
         private void ReloadTestRuns(object sender, RoutedEventArgs e)
@@ -96,7 +108,7 @@ namespace TestRunHelper
                 {
                     Mouse.OverrideCursor = Cursors.Wait;
 
-                    var tests = _tfsTestRuns.TestCaseResults($"{TestRuns.SelectedItem}".Split(' ').First().ToInt());
+                    var tests = _tfsTestRuns.TestCaseResults(TestRunId);
                     var content = string.Empty;
 
                     if (passed)
@@ -110,7 +122,8 @@ namespace TestRunHelper
 
                     var saveFileDialog = new SaveFileDialog { Filter = "Playlist Files (*.playlist)|*.playlist" };
                     if (saveFileDialog.ShowDialog() == true)
-                        File.WriteAllText(saveFileDialog.FileName, $@"<Playlist Version=""1.0"">\r{content}</Playlist>");
+                        File.WriteAllText(saveFileDialog.FileName,
+                            $@"<Playlist Version=""1.0"">{Environment.NewLine}{content}</Playlist>");
                 }
             }
             catch (Exception exception)
@@ -130,7 +143,7 @@ namespace TestRunHelper
 
             tests
                 .Where(test => ListHelper<TestOutcome>.ExistsIn(test.Outcome, outcomes)).ToList()
-                .ForEach(test => result += $"<Add Test=\"{test.Implementation.DisplayText}\" />\r");
+                .ForEach(test => result += $"    <Add Test=\"{test.Implementation.DisplayText}\" />\r");
 
             return result;
         }

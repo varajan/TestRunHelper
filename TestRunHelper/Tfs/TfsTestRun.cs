@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Configuration;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.TeamFoundation;
@@ -10,10 +11,10 @@ namespace TestRunHelper.Tfs
 {
     public class TfsTestRun
     {
-        private readonly string Team = System.Configuration.ConfigurationSettings.AppSettings["Team"];
-        private readonly string Url = System.Configuration.ConfigurationSettings.AppSettings["TfsUrl"];
-        private readonly string Usr = System.Configuration.ConfigurationSettings.AppSettings["login"];
-        private readonly string Pwd = System.Configuration.ConfigurationSettings.AppSettings["password"];
+        private static string Team => ConfigurationManager.AppSettings["Team"];
+        private static string Url => ConfigurationManager.AppSettings["TfsUrl"];
+        private static string Usr => ConfigurationManager.AppSettings["login"];
+        private static string Pwd => ConfigurationManager.AppSettings["password"];
 
         private TfsTeamProjectCollection _collection;
         public TfsTeamProjectCollection Collection
@@ -50,6 +51,7 @@ namespace TestRunHelper.Tfs
         public ITestManagementTeamProject TeamProject => _teamProject =
             _teamProject ?? Collection.GetService<ITestManagementService>().GetTeamProject(Team);
 
+        public ITestRun GetTestRun(int id) => TeamProject.TestRuns.Find(id);
 
         private List<ITestRun> _testRuns;
         public List<ITestRun> TestRuns => _testRuns = _testRuns ??
