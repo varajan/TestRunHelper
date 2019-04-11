@@ -5,13 +5,14 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
-        Title="Test run helper" Height="154.449" Width="403.39">
-    <Grid HorizontalAlignment="Left" Height="106" Margin="10,10,0,0" VerticalAlignment="Top" Width="383">
+        Title="Test run helper" Height="175.659" Width="403.39">
+    <Grid HorizontalAlignment="Left" Height="136" Margin="10,10,0,0" VerticalAlignment="Top" Width="383">
         <ComboBox Name="TestRuns" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Width="338"/>
         <CheckBox Name="Passed" Content="Passed" HorizontalAlignment="Left" Margin="10,37,0,0" VerticalAlignment="Top"/>
         <CheckBox Name="Failed" Content="Failed" HorizontalAlignment="Left" Margin="10,57,0,0" VerticalAlignment="Top"/>
-        <CheckBox Name="Inconclusive" Content="Inconclusive" HorizontalAlignment="Left" Margin="10,77,0,0" VerticalAlignment="Top"/>
-        <Button Name="SaveBtn"  Content="Save playlist" HorizontalAlignment="Left" Margin="268,76,0,0" VerticalAlignment="Top" Width="105" ToolTip="Save playlist on disk"/>
+        <CheckBox Name="NotExecuted" Content="Not executed" HorizontalAlignment="Left" Margin="10,77,0,0" VerticalAlignment="Top"/>
+        <CheckBox Name="Inconclusive" Content="Inconclusive" HorizontalAlignment="Left" Margin="10,97,0,0" VerticalAlignment="Top"/>
+        <Button Name="SaveBtn"  Content="Save playlist" HorizontalAlignment="Left" Margin="268,97,0,0" VerticalAlignment="Top" Width="105" ToolTip="Save playlist on disk"/>
         <Button Name="Reload" Content="&#x21bb;" HorizontalAlignment="Left" Margin="353,10,0,0" VerticalAlignment="Top" Width="20" ToolTip="Reload test runs"/>
     </Grid>
 </Window>

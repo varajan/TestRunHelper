@@ -13,6 +13,11 @@ namespace TestRunHelper
 {
     public partial class MainWindow
     {
+        private bool PassedState => Passed.IsChecked.HasValue && Passed.IsChecked.Value;
+        private bool FailedState => Failed.IsChecked.HasValue && Failed.IsChecked.Value;
+        private bool NotExecutedState => NotExecuted.IsChecked.HasValue && NotExecuted.IsChecked.Value;
+        private bool InconclusiveState => Inconclusive.IsChecked.HasValue && Inconclusive.IsChecked.Value;
+
         private int TestRunId => $"{TestRuns.SelectedItem}".Split('-').First().ToInt();
         private string TestRunTitle => $"{TestRuns.SelectedItem}".Split('-').Second().Trim();
 
@@ -27,9 +32,14 @@ namespace TestRunHelper
             TestRuns.IsEnabled = false;
             Passed.IsEnabled = false;
             Failed.IsEnabled = false;
+            NotExecuted.IsEnabled = false;
             Inconclusive.IsEnabled = false;
             SaveBtn.IsEnabled = false;
 
+            Passed.Click += CheckBoxClick;
+            Failed.Click += CheckBoxClick;
+            NotExecuted.Click += CheckBoxClick;
+            Inconclusive.Click += CheckBoxClick;
             SaveBtn.Click += SavePlaylist;
             Reload.Click += ReloadTestRuns;
             TestRuns.SelectionChanged += UpdateTestsCount;
@@ -59,9 +69,9 @@ namespace TestRunHelper
                 TestRuns.SelectedIndex = 0;
 
                 TestRuns.IsEnabled = true;
-                SaveBtn.IsEnabled = true;
                 Passed.IsEnabled = true;
                 Failed.IsEnabled = true;
+                NotExecuted.IsEnabled = true;
                 Inconclusive.IsEnabled = true;
             }
             catch (Exception exception)
@@ -77,9 +87,6 @@ namespace TestRunHelper
 
         private void SavePlaylist(object sender, RoutedEventArgs e)
         {
-            var passed = Passed.IsChecked.HasValue && Passed.IsChecked.Value;
-            var failed = Failed.IsChecked.HasValue && Failed.IsChecked.Value;
-            var inconclusive = Inconclusive.IsChecked.HasValue && Inconclusive.IsChecked.Value;
             var passedOutcomes = new[]
             {
                 TestOutcome.Passed
@@ -96,36 +103,39 @@ namespace TestRunHelper
             {
                 TestOutcome.Inconclusive,
                 TestOutcome.NotApplicable,
-                TestOutcome.NotExecuted,
                 TestOutcome.InProgress,
                 TestOutcome.Blocked,
                 TestOutcome.Warning,
                 TestOutcome.None
             };
+            var notExecutedOutcomes = new[]
+            {
+                TestOutcome.NotExecuted
+            };
 
             try
             {
-                if (passed || failed || inconclusive)
-                {
-                    Mouse.OverrideCursor = Cursors.Wait;
+                Mouse.OverrideCursor = Cursors.Wait;
 
-                    var tests = _tfsTestRuns.TestCaseResults(TestRunId);
-                    var content = string.Empty;
+                var tests = _tfsTestRuns.TestCaseResults(TestRunId);
+                var content = string.Empty;
 
-                    if (passed)
-                        content += GetTestCasesByOutcome(tests, passedOutcomes);
+                if (PassedState)
+                    content += GetTestCasesByOutcome(tests, passedOutcomes);
 
-                    if (failed)
-                        content += GetTestCasesByOutcome(tests, failedOutcomes);
+                if (FailedState)
+                    content += GetTestCasesByOutcome(tests, failedOutcomes);
 
-                    if (inconclusive)
-                        content += GetTestCasesByOutcome(tests, incompleteOutcomes);
+                if (NotExecutedState)
+                    content += GetTestCasesByOutcome(tests, notExecutedOutcomes);
 
-                    var saveFileDialog = new SaveFileDialog {FileName = TestRunTitle, Filter = "Playlist Files (*.playlist)|*.playlist" };
-                    if (saveFileDialog.ShowDialog() == true)
-                        File.WriteAllText(saveFileDialog.FileName,
-                            $@"<Playlist Version=""1.0"">{Environment.NewLine}{content}</Playlist>");
-                }
+                if (InconclusiveState)
+                    content += GetTestCasesByOutcome(tests, incompleteOutcomes);
+
+                var saveFileDialog = new SaveFileDialog {FileName = TestRunTitle, Filter = "Playlist Files (*.playlist)|*.playlist" };
+                if (saveFileDialog.ShowDialog() == true)
+                    File.WriteAllText(saveFileDialog.FileName,
+                        $@"<Playlist Version=""1.0"">{Environment.NewLine}{content}</Playlist>");
             }
             catch (Exception exception)
             {
@@ -147,6 +157,11 @@ namespace TestRunHelper
                 .ForEach(test => result += $"    <Add Test=\"{test.Implementation.DisplayText}\" />\r");
 
             return result;
+        }
+
+        private void CheckBoxClick(object sender, RoutedEventArgs e)
+        {
+            SaveBtn.IsEnabled = PassedState || FailedState || NotExecutedState || InconclusiveState;
         }
     }
 }

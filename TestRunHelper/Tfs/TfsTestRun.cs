@@ -3,6 +3,7 @@ using System.Configuration;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.TeamFoundation;
+using Microsoft.TeamFoundation.Build.Client;
 using Microsoft.TeamFoundation.Client;
 using Microsoft.TeamFoundation.TestManagement.Client;
 using TestRunHelper.Helpers;
@@ -61,5 +62,7 @@ namespace TestRunHelper.Tfs
                 .ToList();
 
         public List<ITestCaseResult> TestCaseResults(int runId) => TeamProject.TestRuns.Find(runId).QueryResults().ToList();
+
+        //public List<IBuildDetail> Get
     }
 }
