@@ -18,16 +18,16 @@ namespace TestRunHelper
         private bool NotExecutedState => NotExecuted.IsChecked.HasValue && NotExecuted.IsChecked.Value;
         private bool InconclusiveState => Inconclusive.IsChecked.HasValue && Inconclusive.IsChecked.Value;
 
-        private int TestRunId => $"{TestRuns.SelectedItem}".Split('-').First().ToInt();
-        private string TestRunTitle => $"{TestRuns.SelectedItem}".Split('-').Second().Trim();
+        private bool TestRunPassed => $"{TestRuns.SelectedItem}".Split('-').First().Contains("Succeeded");
+        private string BuildNumber => $"{TestRuns.SelectedItem}".Split('-').Second().Trim();
 
-        private readonly TfsTestRun _tfsTestRuns;
+        private readonly TfsHelper _tfsHelpers;
         
         public MainWindow()
         {
             InitializeComponent();
 
-            _tfsTestRuns = new TfsTestRun();
+            _tfsHelpers = new TfsHelper();
 
             TestRuns.IsEnabled = false;
             Passed.IsEnabled = false;
@@ -47,11 +47,25 @@ namespace TestRunHelper
 
         private void UpdateTestsCount(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
-            var statistics = _tfsTestRuns.GetTestRun(TestRunId).Statistics;
+            if (TestRunPassed) UpdateTestsCountWithNumbers(); else UpdateTestsCountWithNa();
+        }
+
+        private void UpdateTestsCountWithNumbers()
+        {
+             var statistics = _tfsHelpers.GetTestRun(BuildNumber).Statistics;
 
             Passed.Content = $"Passed - {statistics.PassedTests}";
             Failed.Content = $"Failed - {statistics.FailedTests}";
+            NotExecuted.Content = "Not executed - 0";
             Inconclusive.Content = $"Inconclusive - {statistics.TotalTests - statistics.PassedTests - statistics.FailedTests}";
+        }
+
+        private void UpdateTestsCountWithNa()
+        {
+            Passed.Content = "Passed - N/A";
+            Failed.Content = "Failed - N/A";
+            NotExecuted.Content = "Not executed - N/A";
+            Inconclusive.Content = "Inconclusive - N/A";
         }
 
         private void ReloadTestRuns(object sender, RoutedEventArgs e)
@@ -61,10 +75,7 @@ namespace TestRunHelper
                 Mouse.OverrideCursor = Cursors.Wait;
 
                 TestRuns.Items.Clear();
-                _tfsTestRuns.TestRuns.OrderByDescending(run => run.Id)
-                    .ToList()
-                    .ForEach(run => TestRuns.Items
-                        .Add($"{run.Id} - {run.BuildNumber} - {run.DateCompleted:D}"));
+                _tfsHelpers.Builds.ForEach(build => TestRuns.Items.Add($"{build.Result} - {build.BuildNumber} - {build.FinishTime:D}"));
 
                 TestRuns.SelectedIndex = 0;
 
@@ -117,7 +128,8 @@ namespace TestRunHelper
             {
                 Mouse.OverrideCursor = Cursors.Wait;
 
-                var tests = _tfsTestRuns.TestCaseResults(TestRunId);
+                var TestRunId = 1;
+                var tests = _tfsHelpers.TestCaseResults(TestRunId);
                 var content = string.Empty;
 
                 if (PassedState)
@@ -132,7 +144,7 @@ namespace TestRunHelper
                 if (InconclusiveState)
                     content += GetTestCasesByOutcome(tests, incompleteOutcomes);
 
-                var saveFileDialog = new SaveFileDialog {FileName = TestRunTitle, Filter = "Playlist Files (*.playlist)|*.playlist" };
+                var saveFileDialog = new SaveFileDialog {FileName = BuildNumber, Filter = "Playlist Files (*.playlist)|*.playlist" };
                 if (saveFileDialog.ShowDialog() == true)
                     File.WriteAllText(saveFileDialog.FileName,
                         $@"<Playlist Version=""1.0"">{Environment.NewLine}{content}</Playlist>");

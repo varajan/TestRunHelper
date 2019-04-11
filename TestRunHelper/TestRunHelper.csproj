@@ -208,7 +208,7 @@
     <Compile Include="Helpers\ListHelper.cs" />
     <Compile Include="Helpers\Logger.cs" />
     <Compile Include="Helpers\StringHelper.cs" />
-    <Compile Include="Tfs\TfsTestRun.cs" />
+    <Compile Include="Tfs\TfsHelper.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
@@ -240,6 +240,7 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+    <None Include="Default.config" />
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
