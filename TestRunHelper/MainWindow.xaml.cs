@@ -15,7 +15,6 @@ namespace TestRunHelper
     {
         private bool PassedState => Passed.IsChecked.HasValue && Passed.IsChecked.Value;
         private bool FailedState => Failed.IsChecked.HasValue && Failed.IsChecked.Value;
-        private bool NotExecutedState => NotExecuted.IsChecked.HasValue && NotExecuted.IsChecked.Value;
         private bool InconclusiveState => Inconclusive.IsChecked.HasValue && Inconclusive.IsChecked.Value;
 
         private bool TestRunPassed => $"{TestRuns.SelectedItem}".Split('-').First().Contains("Succeeded");
@@ -32,13 +31,11 @@ namespace TestRunHelper
             TestRuns.IsEnabled = false;
             Passed.IsEnabled = false;
             Failed.IsEnabled = false;
-            NotExecuted.IsEnabled = false;
             Inconclusive.IsEnabled = false;
             SaveBtn.IsEnabled = false;
 
             Passed.Click += CheckBoxClick;
             Failed.Click += CheckBoxClick;
-            NotExecuted.Click += CheckBoxClick;
             Inconclusive.Click += CheckBoxClick;
             SaveBtn.Click += SavePlaylist;
             Reload.Click += ReloadTestRuns;
@@ -56,7 +53,6 @@ namespace TestRunHelper
 
             Passed.Content = $"Passed - {statistics.PassedTests}";
             Failed.Content = $"Failed - {statistics.FailedTests}";
-            NotExecuted.Content = "Not executed - 0";
             Inconclusive.Content = $"Inconclusive - {statistics.TotalTests - statistics.PassedTests - statistics.FailedTests}";
         }
 
@@ -64,7 +60,6 @@ namespace TestRunHelper
         {
             Passed.Content = "Passed - N/A";
             Failed.Content = "Failed - N/A";
-            NotExecuted.Content = "Not executed - N/A";
             Inconclusive.Content = "Inconclusive - N/A";
         }
 
@@ -82,7 +77,6 @@ namespace TestRunHelper
                 TestRuns.IsEnabled = true;
                 Passed.IsEnabled = true;
                 Failed.IsEnabled = true;
-                NotExecuted.IsEnabled = true;
                 Inconclusive.IsEnabled = true;
             }
             catch (Exception exception)
@@ -114,22 +108,19 @@ namespace TestRunHelper
             {
                 TestOutcome.Inconclusive,
                 TestOutcome.NotApplicable,
+                TestOutcome.NotExecuted,
                 TestOutcome.InProgress,
                 TestOutcome.Blocked,
                 TestOutcome.Warning,
                 TestOutcome.None
-            };
-            var notExecutedOutcomes = new[]
-            {
-                TestOutcome.NotExecuted
             };
 
             try
             {
                 Mouse.OverrideCursor = Cursors.Wait;
 
-                var TestRunId = 1;
-                var tests = _tfsHelpers.TestCaseResults(TestRunId);
+                var testRunId = _tfsHelpers.GetTestRun(BuildNumber).Id;
+                var tests = _tfsHelpers.TestCaseResults(testRunId);
                 var content = string.Empty;
 
                 if (PassedState)
@@ -137,9 +128,6 @@ namespace TestRunHelper
 
                 if (FailedState)
                     content += GetTestCasesByOutcome(tests, failedOutcomes);
-
-                if (NotExecutedState)
-                    content += GetTestCasesByOutcome(tests, notExecutedOutcomes);
 
                 if (InconclusiveState)
                     content += GetTestCasesByOutcome(tests, incompleteOutcomes);
@@ -173,7 +161,7 @@ namespace TestRunHelper
 
         private void CheckBoxClick(object sender, RoutedEventArgs e)
         {
-            SaveBtn.IsEnabled = PassedState || FailedState || NotExecutedState || InconclusiveState;
+            SaveBtn.IsEnabled = PassedState || FailedState || InconclusiveState;
         }
     }
 }
