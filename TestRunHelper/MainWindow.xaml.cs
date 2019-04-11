@@ -13,7 +13,8 @@ namespace TestRunHelper
 {
     public partial class MainWindow
     {
-        private int TestRunId => $"{TestRuns.SelectedItem}".Split(' ').First().ToInt();
+        private int TestRunId => $"{TestRuns.SelectedItem}".Split('-').First().ToInt();
+        private string TestRunTitle => $"{TestRuns.SelectedItem}".Split('-').Second().Trim();
 
         private readonly TfsTestRun _tfsTestRuns;
         
@@ -120,7 +121,7 @@ namespace TestRunHelper
                     if (inconclusive)
                         content += GetTestCasesByOutcome(tests, incompleteOutcomes);
 
-                    var saveFileDialog = new SaveFileDialog { Filter = "Playlist Files (*.playlist)|*.playlist" };
+                    var saveFileDialog = new SaveFileDialog {FileName = TestRunTitle, Filter = "Playlist Files (*.playlist)|*.playlist" };
                     if (saveFileDialog.ShowDialog() == true)
                         File.WriteAllText(saveFileDialog.FileName,
                             $@"<Playlist Version=""1.0"">{Environment.NewLine}{content}</Playlist>");

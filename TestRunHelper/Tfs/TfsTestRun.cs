@@ -56,7 +56,7 @@ namespace TestRunHelper.Tfs
         private List<ITestRun> _testRuns;
         public List<ITestRun> TestRuns => _testRuns = _testRuns ??
              TeamProject.TestRuns.Query("select * from TestRun")
-                .Where(run => run.LastUpdated > DateTime.UtcNow.AddDays(-10))
+                .Where(run => run.LastUpdated > DateTime.UtcNow.AddMonths(-1))
                 .Where(run => run.Title.Contains("VSTest Test Run"))
                 .ToList();
 
