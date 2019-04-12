@@ -11,7 +11,7 @@ namespace TestRunHelper.Helpers
 
         private static void Log(string type, string message)
         {
-            File.AppendAllText("log.txt", $@"{DateTime.Now:yyyy-MM-dd hh:mm:ss.fff} - {type.ToUpper()} - {message}{Environment.NewLine}");
+            File.AppendAllText("log.txt", $@"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} - {type.ToUpper()} - {message}{Environment.NewLine}");
         }
     }
 }
