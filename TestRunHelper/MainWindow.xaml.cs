@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Input;
 using Microsoft.TeamFoundation.TestManagement.Client;
@@ -13,6 +15,27 @@ namespace TestRunHelper
 {
     public partial class MainWindow
     {
+        private const string TestRunsFolder = "TestRunsFolder";
+        private const string SolutionTestsFile = "solutionTests.txt";
+
+        private string PassedTestsFile => $"{TestRunsFolder}\\{BuildNumber}_passed.txt";
+        private string FailedTestsFile => $"{TestRunsFolder}\\{BuildNumber}_failed.txt";
+
+        private string PlaylistName
+        {
+            get
+            {
+                var result = BuildNumber;
+
+                if (PassedState) result += "_passed";
+                if (FailedState) result += "_failed";
+                if (InconclusiveState) result += "_inconclusive";
+
+                return result;
+
+            }
+        }
+
         private bool PassedState => Passed.IsChecked.HasValue && Passed.IsChecked.Value;
         private bool FailedState => Failed.IsChecked.HasValue && Failed.IsChecked.Value;
         private bool InconclusiveState => Inconclusive.IsChecked.HasValue && Inconclusive.IsChecked.Value;
@@ -21,7 +44,27 @@ namespace TestRunHelper
         private string BuildNumber => $"{TestRuns.SelectedItem}".Split('-').Second().Trim();
 
         private readonly TfsHelper _tfsHelpers;
-        
+
+        private readonly TestOutcome[] _passedOutcomes = {
+            TestOutcome.Passed
+        };
+        private readonly TestOutcome[] _failedOutcomes = {
+            TestOutcome.Failed,
+            TestOutcome.Aborted,
+            TestOutcome.Error,
+            TestOutcome.Timeout,
+            TestOutcome.MaxValue
+        };
+        private readonly TestOutcome[] _incompleteOutcomes = {
+            TestOutcome.Inconclusive,
+            TestOutcome.NotApplicable,
+            TestOutcome.NotExecuted,
+            TestOutcome.InProgress,
+            TestOutcome.Blocked,
+            TestOutcome.Warning,
+            TestOutcome.None
+        };
+
         public MainWindow()
         {
             InitializeComponent();
@@ -32,6 +75,9 @@ namespace TestRunHelper
             Passed.IsEnabled = false;
             Failed.IsEnabled = false;
             Inconclusive.IsEnabled = false;
+
+            SolutionTests.Visibility = Visibility.Hidden;
+            TestRunTests.Visibility = Visibility.Hidden;
             SaveBtn.IsEnabled = false;
 
             Passed.Click += CheckBoxClick;
@@ -40,11 +86,25 @@ namespace TestRunHelper
             SaveBtn.Click += SavePlaylist;
             Reload.Click += ReloadTestRuns;
             TestRuns.SelectionChanged += UpdateTestsCount;
+            SolutionTests.Click += GetSolutionTests;
+            TestRunTests.Click += GetTestsForBuild;
         }
 
         private void UpdateTestsCount(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
         {
-            if (TestRunPassed) UpdateTestsCountWithNumbers(); else UpdateTestsCountWithNa();
+            if (TestRunPassed)
+            {
+                UpdateTestsCountWithNumbers();
+                SolutionTests.Visibility = Visibility.Hidden;
+                TestRunTests.Visibility = Visibility.Hidden;
+            }
+            else
+            {
+                SolutionTests.Visibility = Visibility.Visible;
+                TestRunTests.Visibility = Visibility.Visible;
+
+                UpdateTestsCountWithNa();
+            }
         }
 
         private void UpdateTestsCountWithNumbers()
@@ -58,9 +118,22 @@ namespace TestRunHelper
 
         private void UpdateTestsCountWithNa()
         {
-            Passed.Content = "Passed - N/A";
-            Failed.Content = "Failed - N/A";
-            Inconclusive.Content = "Inconclusive - N/A";
+            if (File.Exists(SolutionTestsFile) && File.Exists(PassedTestsFile) && File.Exists(FailedTestsFile))
+            {
+                var allTestsCount = File.ReadAllLines(SolutionTestsFile).Length;
+                var passedTestsCount = File.ReadAllLines(PassedTestsFile).Length;
+                var failedTestsCount = File.ReadAllLines(FailedTestsFile).Length;
+
+                Passed.Content = $"Passed - {passedTestsCount}";
+                Failed.Content = $"Failed - {failedTestsCount}";
+                Inconclusive.Content = $"Inconclusive - {allTestsCount - passedTestsCount - failedTestsCount}";
+            }
+            else
+            {
+                Passed.Content = "Passed - N/A";
+                Failed.Content = "Failed - N/A";
+                Inconclusive.Content = "Inconclusive - N/A";
+            }
         }
 
         private void ReloadTestRuns(object sender, RoutedEventArgs e)
@@ -92,47 +165,81 @@ namespace TestRunHelper
 
         private void SavePlaylist(object sender, RoutedEventArgs e)
         {
-            var passedOutcomes = new[]
-            {
-                TestOutcome.Passed
-            };
-            var failedOutcomes = new[]
-            {
-                TestOutcome.Failed,
-                TestOutcome.Aborted,
-                TestOutcome.Error,
-                TestOutcome.Timeout,
-                TestOutcome.MaxValue
-            };
-            var incompleteOutcomes = new[]
-            {
-                TestOutcome.Inconclusive,
-                TestOutcome.NotApplicable,
-                TestOutcome.NotExecuted,
-                TestOutcome.InProgress,
-                TestOutcome.Blocked,
-                TestOutcome.Warning,
-                TestOutcome.None
-            };
+            Mouse.OverrideCursor = Cursors.Wait;
 
+            if (TestRunPassed)
+            {
+                SaveSucceededBuildPlaylist();
+            }
+            else
+            {
+                SaveFailedBuildPlaylist();
+            }
+
+            Mouse.OverrideCursor = null;
+        }
+
+        private void SaveFailedBuildPlaylist()
+        {
+            var tests = File.ReadAllLines(SolutionTestsFile);
+            var passed = File.ReadAllLines(PassedTestsFile);
+            var failed = File.ReadAllLines(FailedTestsFile);
+
+            var content = string.Empty;
+
+            if (PassedState)
+            {
+                foreach (var test in passed)
+                {
+                    var fullTestName = tests.First(x => x.EndsWith($".{test}"));
+                    content += $"    <Add Test=\"{fullTestName}\" />\r";
+                }
+            }
+
+            if (FailedState)
+            {
+                foreach (var test in failed)
+                {
+                    var fullTestName = tests.First(x => x.EndsWith($".{test}"));
+                    content += $"    <Add Test=\"{fullTestName}\" />\r";
+                }
+            }
+
+            if (InconclusiveState)
+            {
+                foreach (var test in tests)
+                {
+                    if (passed.Any(x => test.EndsWith($".{x}"))) continue;
+                    if (failed.Any(x => test.EndsWith($".{x}"))) continue;
+
+                    content += $"    <Add Test=\"{test}\" />\r";
+                }
+            }
+
+            var saveFileDialog = new SaveFileDialog { FileName = PlaylistName, Filter = "Playlist Files (*.playlist)|*.playlist" };
+            if (saveFileDialog.ShowDialog() == true)
+                File.WriteAllText(saveFileDialog.FileName,
+                    $@"<Playlist Version=""1.0"">{Environment.NewLine}{content}</Playlist>");
+        }
+
+        private void SaveSucceededBuildPlaylist()
+        {
             try
             {
-                Mouse.OverrideCursor = Cursors.Wait;
-
                 var testRunId = _tfsHelpers.GetTestRun(BuildNumber).Id;
                 var tests = _tfsHelpers.TestCaseResults(testRunId);
                 var content = string.Empty;
 
                 if (PassedState)
-                    content += GetTestCasesByOutcome(tests, passedOutcomes);
+                    content += GetTestCasesByOutcome(tests, _passedOutcomes);
 
                 if (FailedState)
-                    content += GetTestCasesByOutcome(tests, failedOutcomes);
+                    content += GetTestCasesByOutcome(tests, _failedOutcomes);
 
                 if (InconclusiveState)
-                    content += GetTestCasesByOutcome(tests, incompleteOutcomes);
+                    content += GetTestCasesByOutcome(tests, _incompleteOutcomes);
 
-                var saveFileDialog = new SaveFileDialog {FileName = BuildNumber, Filter = "Playlist Files (*.playlist)|*.playlist" };
+                var saveFileDialog = new SaveFileDialog {FileName = PlaylistName, Filter = "Playlist Files (*.playlist)|*.playlist" };
                 if (saveFileDialog.ShowDialog() == true)
                     File.WriteAllText(saveFileDialog.FileName,
                         $@"<Playlist Version=""1.0"">{Environment.NewLine}{content}</Playlist>");
@@ -141,10 +248,6 @@ namespace TestRunHelper
             {
                 Logger.Error("Failed to save playlist");
                 Logger.Error(exception);
-            }
-            finally
-            {
-                Mouse.OverrideCursor = null;
             }
         }
 
@@ -159,9 +262,135 @@ namespace TestRunHelper
             return result;
         }
 
+        private void GetTestsForBuild(object sender, RoutedEventArgs e)
+        {
+            Mouse.OverrideCursor = Cursors.Wait;
+
+            var logs = _tfsHelpers.GetBuild(BuildNumber).Logs.Url;
+
+            if (!Directory.Exists(TestRunsFolder) || !Directory.GetFiles(TestRunsFolder).Any(file => file.Contains(BuildNumber)))
+            {
+                GetLogs(logs);
+            }
+            GetTestNames();
+
+            Mouse.OverrideCursor = null;
+        }
+
+        private void GetSolutionTests(object sender, RoutedEventArgs e)
+        {
+            Mouse.OverrideCursor = Cursors.Wait;
+
+            var solutionPath = ConfigurationManager.AppSettings["TestsSolutionPath"];
+            var files = GetSharpFiles(solutionPath);
+            var tests = new List<string>();
+
+            files.ForEach(file => tests.AddRange(GetTests(file)));
+
+            File.Delete(SolutionTestsFile);
+            File.WriteAllLines(SolutionTestsFile, tests);
+
+            Mouse.OverrideCursor = null;
+        }
+
+        private List<string> GetTests(string file)
+        {
+            var result = new List<string>();
+            var lines = File.ReadAllLines(file);
+
+            if (lines.Any(line => line.Contains("[TestMethod]")))
+            {
+                bool testMethod = false;
+                var nameSpace = lines.First(line => line.Contains("namespace")).Split("namespace").Last().Trim();
+
+                foreach (var line in lines)
+                {
+                    if (line.Contains("[TestMethod]")) testMethod = true;
+
+                    if (testMethod && line.Contains("public void "))
+                    {
+                        var test = line.SubString("public void", "()").Trim();
+                        result.Add($"{nameSpace}.{test}");
+
+                        testMethod = false;
+                    }
+                }
+            }
+
+            return result;
+        }
+
+        private List<string> GetSharpFiles(string folder)
+        {
+            var result = new List<string>();
+            var files = Directory.GetFiles(folder);
+            var subfolders = Directory.GetDirectories(folder);
+
+            foreach (var file in files)
+            {
+                if (file.ToLower().EndsWith(".cs"))
+                {
+                    result.Add(file);
+                }
+            }
+
+            foreach (var subfolder in subfolders)
+            {
+                result.AddRange(GetSharpFiles(subfolder));
+            }
+
+            return result;
+        }
+
+        private void GetLogs(string logs)
+        {
+            Directory.CreateDirectory(TestRunsFolder);
+            Directory.GetFiles(TestRunsFolder).ToList()
+                .Where(file => file.Contains(BuildNumber)).ToList()
+                .ForEach(File.Delete);
+
+            for (var i = 1; i < 100; i++)
+            {
+                var successful = HttpHelper.GetFile($"{logs}/{i}", $"{TestRunsFolder}\\{BuildNumber}_log_{i}.txt");
+
+                if (!successful) break;
+            }
+        }
+
+        private void GetTestNames()
+        {
+            const string regex = @"\d*-\d*-\d*T\d*:\d*:\d*.\d*Z\s*(Passed|Failed)";
+            var tests = new List<string>();
+
+            var files = Directory.GetFiles(TestRunsFolder);
+
+            foreach (var file in files)
+            {
+                if (file.Contains(BuildNumber))
+                {
+                    var lines = File.ReadLines(file);
+                    tests.AddRange(lines.Where(line => Regex.IsMatch(line, regex)));
+                }
+            }
+
+            var passed = tests.Where(line => line.Contains(" Passed "))
+                .Select(line => line.Split(" Passed ").Second().Trim()).Distinct();
+
+            var failed = tests.Where(line => line.Contains(" Failed "))
+                .Select(line => line.Split(" Failed ").Second().Trim()).Distinct();
+
+            File.WriteAllLines(PassedTestsFile, passed);
+            File.WriteAllLines(FailedTestsFile, failed);
+            
+            UpdateTestsCountWithNa();
+        }
+
         private void CheckBoxClick(object sender, RoutedEventArgs e)
         {
-            SaveBtn.IsEnabled = PassedState || FailedState || InconclusiveState;
+            SaveBtn.IsEnabled = (PassedState || FailedState || InconclusiveState) &&
+                                (TestRunPassed || File.Exists(SolutionTestsFile) &&
+                                                  File.Exists(PassedTestsFile) &&
+                                                  File.Exists(FailedTestsFile));
         }
     }
 }

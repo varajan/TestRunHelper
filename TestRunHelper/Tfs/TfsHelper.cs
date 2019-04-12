@@ -65,8 +65,10 @@ namespace TestRunHelper.Tfs
                 .Where(run => run.Title.Contains("VSTest Test Run"))
                 .ToList();
 
+        public Build GetBuild(string buildNumber) => Builds.First(build => build.BuildNumber.Equals(buildNumber));
+
         public ITestRun GetTestRun(string buildNumber) =>
-            TeamProject.TestRuns.ByBuild(Builds.First(build => build.BuildNumber.Equals(buildNumber)).Uri).FirstOrDefault();
+            TeamProject.TestRuns.ByBuild(GetBuild(buildNumber).Uri).FirstOrDefault();
 
         public List<ITestCaseResult> TestCaseResults(int runId) => TeamProject.TestRuns.Find(runId).QueryResults().ToList();
 

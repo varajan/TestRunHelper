@@ -208,6 +208,7 @@
     <Compile Include="Helpers\ListHelper.cs" />
     <Compile Include="Helpers\Logger.cs" />
     <Compile Include="Helpers\StringHelper.cs" />
+    <Compile Include="HttpHelper.cs" />
     <Compile Include="Tfs\TfsHelper.cs" />
     <Page Include="MainWindow.xaml">
       <Generator>MSBuild:Compile</Generator>
