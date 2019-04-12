@@ -275,6 +275,11 @@ Copy TestRunHelper.exe .\..\..\..\Helper\TestRunHelper.exe
 Copy  .\..\..\Default.config .\..\..\..\Helper\TestRunHelper.exe.config
 Copy Microsoft.WITDataStore32.dll .\..\..\..\Helper\Microsoft.WITDataStore32.dll
 Copy Microsoft.WITDataStore64.dll .\..\..\..\Helper\Microsoft.WITDataStore64.dll
+
+powershell Compress-Archive -Path '$(SolutionDir)Helper\*.*' -DestinationPath '$(SolutionDir)TestRunHelper.zip' -Force
+
+DEL /F/Q/S .\..\..\..\Helper &gt; NUL
+RD .\..\..\..\Helper
 </PostBuildEvent>
   </PropertyGroup>
   <PropertyGroup>
