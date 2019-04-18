@@ -1,10 +1,12 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
+using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net;
-using TestRunHelper.Helpers;
 
-namespace TestRunHelper
+namespace TestRunHelper.Helpers
 {
     public static class HttpHelper
     {
@@ -30,6 +32,16 @@ namespace TestRunHelper
             }
 
             return true;
+        }
+
+        public static List<string> GetFileContent(string url)
+        {
+            var randomName = DateTime.Now.ToString(CultureInfo.InvariantCulture).HashString();
+            var successful = GetFile(url, randomName);
+            var result = successful ? File.ReadLines(randomName).ToList() : new List<string>();
+            if (successful) File.Delete(randomName);
+
+            return result;
         }
     }
 }

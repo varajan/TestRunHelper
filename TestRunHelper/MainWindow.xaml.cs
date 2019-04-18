@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Input;
+using Microsoft.TeamFoundation.Client;
 using Microsoft.TeamFoundation.TestManagement.Client;
 using Microsoft.Win32;
 using TestRunHelper.Helpers;
@@ -88,6 +90,8 @@ namespace TestRunHelper
             TestRuns.SelectionChanged += UpdateTestsCount;
             SolutionTests.Click += GetSolutionTests;
             TestRunTests.Click += GetTestsForBuild;
+
+            CheckForUpdates();
         }
 
         private void UpdateTestsCount(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
@@ -391,6 +395,21 @@ namespace TestRunHelper
                                 (TestRunPassed || File.Exists(SolutionTestsFile) &&
                                                   File.Exists(PassedTestsFile) &&
                                                   File.Exists(FailedTestsFile));
+        }
+
+        private static void CheckForUpdates()
+        {
+            var assemblyInfo = HttpHelper.GetFileContent(ConfigurationManager.AppSettings["AssemblyInfo"]);
+            var availableVersion = assemblyInfo.FirstOrDefault(x => x.StartsWith("[assembly: AssemblyVersion")).SubString("\"", "\"");
+            var currentVersion = Assembly.GetExecutingAssembly().GetName().Version.ToString();
+            var question = $"Version {availableVersion} is available. Would you like download it?";
+            const string caption = "New version is available";
+
+            if (currentVersion.IsVersionLessThen(availableVersion) &&
+                MessageBox.Show(question, caption, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
+            {
+                System.Diagnostics.Process.Start(ConfigurationManager.AppSettings["GitRepository"]);
+            }
         }
     }
 }
