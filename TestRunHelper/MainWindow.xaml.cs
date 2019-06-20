@@ -429,6 +429,8 @@ namespace TestRunHelper
             var question = $"Version {availableVersion} is available. Would you like download it?";
             const string caption = "New version is available";
 
+            Logger.Info($"Current version: {currentVersion}; New version: {availableVersion}");
+
             if (currentVersion.IsVersionLessThen(availableVersion) &&
                 MessageBox.Show(question, caption, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes)
             {
