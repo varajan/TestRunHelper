@@ -8,6 +8,8 @@ namespace TestRunHelper.Helpers
 {
     public static class StringHelper
     {
+        public static string AsPlaylistEntry(this string testName) => $"    <Add Test=\"{testName}\" />\r";
+
         public static bool IsVersionLessThen(this string version1, string version2)
         {
             var v1 = version1.Split('.');

@@ -7,7 +7,6 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Input;
-using Microsoft.TeamFoundation.Client;
 using Microsoft.TeamFoundation.TestManagement.Client;
 using Microsoft.Win32;
 using TestRunHelper.Helpers;
@@ -20,6 +19,7 @@ namespace TestRunHelper
         private const string TestRunsFolder = "TestRunsFolder";
         private const string SolutionTestsFile = "solutionTests.txt";
 
+        private string BasePlaylistNameFile { get; set; }
         private string PassedTestsFile => $"{TestRunsFolder}\\{BuildNumber}_passed.txt";
         private string FailedTestsFile => $"{TestRunsFolder}\\{BuildNumber}_failed.txt";
 
@@ -78,6 +78,7 @@ namespace TestRunHelper
             Failed.IsEnabled = false;
             Inconclusive.IsEnabled = false;
 
+            BasePlaylistName.Visibility = Visibility.Hidden;
             SolutionTests.Visibility = Visibility.Hidden;
             TestRunTests.Visibility = Visibility.Hidden;
             SaveBtn.IsEnabled = false;
@@ -90,6 +91,8 @@ namespace TestRunHelper
             TestRuns.SelectionChanged += UpdateTestsCount;
             SolutionTests.Click += GetSolutionTests;
             TestRunTests.Click += GetTestsForBuild;
+            SelectBasePlaylist.Click += OnSelectBasePlaylist;
+            ResetBasePlaylist.Click += OnResetBasePlaylist;
 
             CheckForUpdates();
         }
@@ -196,7 +199,7 @@ namespace TestRunHelper
                 foreach (var test in passed)
                 {
                     var fullTestName = tests.First(x => x.EndsWith($".{test}"));
-                    content += $"    <Add Test=\"{fullTestName}\" />\r";
+                    content += fullTestName.AsPlaylistEntry();
                 }
             }
 
@@ -205,7 +208,7 @@ namespace TestRunHelper
                 foreach (var test in failed)
                 {
                     var fullTestName = tests.First(x => x.EndsWith($".{test}"));
-                    content += $"    <Add Test=\"{fullTestName}\" />\r";
+                    content += fullTestName.AsPlaylistEntry();
                 }
             }
 
@@ -216,7 +219,7 @@ namespace TestRunHelper
                     if (passed.Any(x => test.EndsWith($".{x}"))) continue;
                     if (failed.Any(x => test.EndsWith($".{x}"))) continue;
 
-                    content += $"    <Add Test=\"{test}\" />\r";
+                    content += test.AsPlaylistEntry();
                 }
             }
 
@@ -258,10 +261,14 @@ namespace TestRunHelper
         private string GetTestCasesByOutcome(List<ITestCaseResult> tests, params TestOutcome[] outcomes)
         {
             var result = string.Empty;
+            var useBasePlaylist = !string.IsNullOrEmpty(BasePlaylistNameFile);
+            var baseTests = useBasePlaylist ? File.ReadLines(BasePlaylistNameFile).ToList() : new List<string>();
 
             tests
                 .Where(test => ListHelper<TestOutcome>.ExistsIn(test.Outcome, outcomes)).ToList()
-                .ForEach(test => result += $"    <Add Test=\"{test.Implementation.DisplayText}\" />\r");
+                .Select(test => test.Implementation.DisplayText)
+                .Where(entry => !useBasePlaylist || baseTests.Any(x => x.Contains(entry))).ToList()
+                .ForEach(entry => result += entry.AsPlaylistEntry());
 
             return result;
         }
@@ -279,6 +286,23 @@ namespace TestRunHelper
             GetTestNames();
 
             Mouse.OverrideCursor = null;
+        }
+
+        private void OnResetBasePlaylist(object sender, RoutedEventArgs e)
+        {
+            BasePlaylistName.Visibility = Visibility.Hidden;
+            BasePlaylistNameFile = string.Empty;
+        }
+
+        private void OnSelectBasePlaylist(object sender, RoutedEventArgs e)
+        {
+            var openFileDialog = new OpenFileDialog { Filter = "Playlist Files (*.playlist)|*.playlist" };
+            if (openFileDialog.ShowDialog() ?? false)
+            {
+                BasePlaylistNameFile = openFileDialog.FileName;
+                BasePlaylistName.Visibility = Visibility.Visible;
+                BasePlaylistName.Content = BasePlaylistNameFile.Split("\\").Last();
+            }
         }
 
         private void GetSolutionTests(object sender, RoutedEventArgs e)
