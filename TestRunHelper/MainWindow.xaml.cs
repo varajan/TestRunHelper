@@ -266,9 +266,9 @@ namespace TestRunHelper
 
             tests
                 .Where(test => ListHelper<TestOutcome>.ExistsIn(test.Outcome, outcomes)).ToList()
-                .Select(test => test.Implementation.DisplayText)
+                .Select(test => test.Implementation.DisplayText.AsPlaylistEntry(false))
                 .Where(entry => !useBasePlaylist || baseTests.Any(x => x.Contains(entry))).ToList()
-                .ForEach(entry => result += entry.AsPlaylistEntry());
+                .ForEach(entry => result += entry + "\r");
 
             return result;
         }

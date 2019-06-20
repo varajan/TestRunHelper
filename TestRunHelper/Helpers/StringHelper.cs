@@ -8,7 +8,8 @@ namespace TestRunHelper.Helpers
 {
     public static class StringHelper
     {
-        public static string AsPlaylistEntry(this string testName) => $"    <Add Test=\"{testName}\" />\r";
+        public static string AsPlaylistEntry(this string testName, bool eol = true)
+            => $"    <Add Test=\"{testName}\" />{(eol ? "\r" : string.Empty)}";
 
         public static bool IsVersionLessThen(this string version1, string version2)
         {
