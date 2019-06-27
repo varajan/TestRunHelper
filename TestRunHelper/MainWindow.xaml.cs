@@ -314,6 +314,7 @@ namespace TestRunHelper
             var tests = new List<string>();
 
             files.ForEach(file => tests.AddRange(GetTests(file)));
+            tests = tests.Distinct().ToList();
 
             File.Delete(SolutionTestsFile);
             File.WriteAllLines(SolutionTestsFile, tests);

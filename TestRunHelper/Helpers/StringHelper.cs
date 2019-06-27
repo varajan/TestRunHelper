@@ -31,7 +31,7 @@ namespace TestRunHelper.Helpers
             return vAsInt1 < vAsInt2;
         }
 
-        public static string HashString(this string line, int length = 20)
+        public static string HashString(this string line, int length = 22)
         {
             var hash = SHA256.Create().ComputeHash(Encoding.UTF8.GetBytes(line));
             var result = hash.Aggregate("", (current, b) => current + b.ToString("X2"));
