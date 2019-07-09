@@ -163,11 +163,18 @@ namespace TestRunHelper
             {
                 Logger.Error("Failed to load test runs");
                 Logger.Error(exception);
+
+                AlertUser("Failed to load test runs", exception);
             }
             finally
             {
                 Mouse.OverrideCursor = null;
             }
+        }
+
+        private void AlertUser(string title, Exception exception)
+        {
+            MessageBox.Show(exception.Message, title, MessageBoxButton.OK, MessageBoxImage.Error);
         }
 
         private void SavePlaylist(object sender, RoutedEventArgs e)
@@ -255,6 +262,8 @@ namespace TestRunHelper
             {
                 Logger.Error("Failed to save playlist");
                 Logger.Error(exception);
+
+                AlertUser("Failed to save playlist", exception);
             }
         }
 

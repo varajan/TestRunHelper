@@ -40,8 +40,11 @@ namespace TestRunHelper.Tfs
                 if (_collection == null || !_collection.HasAuthenticated)
                 {
                     _collection = null;
-                    Logger.Error("Connection to TFS is not established.");
-                    throw new TeamFoundationServerUnauthorizedException("Connection to TFS is not established.");
+                    var error = "Connection to TFS is not established. " +
+                                "Maybe you should specify or update credentials in the config file.";
+
+                    Logger.Error(error);
+                    throw new TeamFoundationServerUnauthorizedException(error);
                 }
 
                 Logger.Info("Connection to TFS is ok");
